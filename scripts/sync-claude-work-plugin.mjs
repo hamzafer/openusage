@@ -36,7 +36,14 @@ const REPLACEMENTS = [
     to:
       "  function expandHomePath(ctx, path) {\n" +
       '    if (path.indexOf("~/") !== 0) return path\n' +
-      '    const home = readEnvText(ctx, "HOME")\n' +
+      '    let home = readEnvText(ctx, "HOME")\n' +
+      "    if (!home) {\n" +
+      "      // The host only exposes whitelisted env vars; derive the home dir from the\n" +
+      "      // app data dir (~/Library/Application Support/...) when HOME is unavailable.\n" +
+      '      const dataDir = ctx.app && typeof ctx.app.appDataDir === "string" ? ctx.app.appDataDir : ""\n' +
+      '      const libraryIndex = dataDir.indexOf("/Library/")\n' +
+      "      if (libraryIndex > 0) home = dataDir.slice(0, libraryIndex)\n" +
+      "    }\n" +
       "    if (!home) return path\n" +
       '    return home.replace(/\\/+$/, "") + path.slice(1)\n' +
       "  }\n" +
@@ -60,6 +67,25 @@ const REPLACEMENTS = [
       "    // which for this account is the expanded path (e.g. /Users/you/.claude-work).\n" +
       "    const explicitConfigDir = expandHomePath(ctx, DEFAULT_CLAUDE_HOME)\n" +
       "    if (!explicitConfigDir) return null\n",
+  },
+  {
+    from:
+      "  function getClaudeKeychainServiceCandidates(ctx) {\n" +
+      "    const base = buildClaudeBaseKeychainService(ctx)\n" +
+      "    const candidates = []\n" +
+      "    const hash = computeKeychainHashSuffix(ctx)\n" +
+      '    if (hash) candidates.push(base + "-" + hash)  // hashed (CLAUDE_CONFIG_DIR set)\n' +
+      "    candidates.push(base)                          // legacy / default\n" +
+      "    return candidates\n" +
+      "  }\n",
+    to:
+      "  // claude-work: only the hashed service belongs to this account. Never fall back to the\n" +
+      "  // unhashed default item, which is the personal login.\n" +
+      "  function getClaudeKeychainServiceCandidates(ctx) {\n" +
+      "    const base = buildClaudeBaseKeychainService(ctx)\n" +
+      "    const hash = computeKeychainHashSuffix(ctx)\n" +
+      '    return hash ? [base + "-" + hash] : []\n' +
+      "  }\n",
   },
   {
     from: '  globalThis.__openusage_plugin = { id: "claude", probe, _resetState }\n',

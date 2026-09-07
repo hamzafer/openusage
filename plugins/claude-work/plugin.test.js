@@ -94,7 +94,7 @@ describe("claude-work plugin", () => {
     )
   })
 
-  it("falls back to the legacy service name after the hashed one misses", () => {
+  it("never falls back to the unhashed (personal) keychain item", () => {
     const ctx = workCtx()
     ctx.host.fs.exists = () => false
     ctx.host.keychain.readGenericPasswordForCurrentUser.mockImplementation(() => {
@@ -106,7 +106,27 @@ describe("claude-work plugin", () => {
 
     expect(() => plugin.probe(ctx)).toThrow("Not logged in")
     const services = ctx.host.keychain.readGenericPasswordForCurrentUser.mock.calls.map((c) => c[0])
-    expect(services).toEqual([WORK_SERVICE, "Claude Code-credentials"])
+    expect(services).toEqual([WORK_SERVICE])
+    expect(ctx.host.keychain.readGenericPassword).not.toHaveBeenCalledWith("Claude Code-credentials")
+  })
+
+  it("derives the home dir from appDataDir when HOME is not exposed by the host", () => {
+    const ctx = makeCtx()
+    ctx.host.env.get.mockReturnValue(null)
+    ctx.app.appDataDir = HOME + "/Library/Application Support/com.sunstory.openusage"
+    ctx.host.fs.exists = () => false
+    ctx.host.keychain.readGenericPasswordForCurrentUser.mockImplementation((service) => {
+      if (service === WORK_SERVICE) return workCredentials()
+      throw new Error("keychain item not found")
+    })
+    ctx.host.http.request.mockReturnValue(usageResponse())
+
+    const result = plugin.probe(ctx)
+    expect(result.lines.find((line) => line.label === "Session")).toBeTruthy()
+    expect(ctx.host.keychain.readGenericPasswordForCurrentUser.mock.calls[0][0]).toBe(WORK_SERVICE)
+    expect(ctx.host.ccusage.query).toHaveBeenCalledWith(
+      expect.objectContaining({ homePath: HOME + "/.claude-work" })
+    )
   })
 
   it("passes the expanded work dir to the ccusage runner", () => {
@@ -122,9 +142,10 @@ describe("claude-work plugin", () => {
     )
   })
 
-  it("keeps the tilde path when HOME is unavailable", () => {
+  it("keeps the tilde path when neither HOME nor a macOS app data dir is available", () => {
     const ctx = makeCtx()
     ctx.host.env.get.mockReturnValue(null)
+    ctx.app.appDataDir = "/tmp/openusage-test"
     const credentialsPath = "~/.claude-work/.credentials.json"
     ctx.host.fs.exists = (p) => p === credentialsPath
     ctx.host.fs.readText = () => workCredentials()

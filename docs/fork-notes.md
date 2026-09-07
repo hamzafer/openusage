@@ -34,6 +34,22 @@ rewrite. Read this first when picking the project up again.
   `Claude Code-credentials-<sha256(CLAUDE_CONFIG_DIR)[:8]>` when the env var is set, and the hash
   is over the literal value it was launched with (the expanded path in practice). The work plugin
   computes this from `$HOME`, so nothing is hardcoded.
+- **Plugins only see whitelisted environment variables.** `WHITELISTED_ENV_VARS` in
+  `src-tauri/src/plugin_engine/host_api.rs` decides what `ctx.host.env.get` returns; everything else
+  is `null`. `HOME` was not on it, so the first generated work plugin hashed the literal `~/.claude-work`,
+  missed the keychain item, and silently fell back to the personal login. Now `HOME` is whitelisted, the
+  plugin also derives the home dir from `ctx.app.appDataDir`, and the work plugin never falls back to the
+  unhashed keychain item (it says "Not logged in" instead of showing the wrong account).
+- **Never edit plugins in `~/Library/Application Support/com.sunstory.openusage/plugins/` and expect it
+  to stick**, and watch out for a second Claude Code session (for example one running as the work account)
+  editing that folder at the same time. The repo is the only source of truth.
+- **A LaunchAgent from June 2026 still rewrites the installed work plugin.**
+  `~/Library/LaunchAgents/com.hamza.openusage-claude-work-sync.plist` runs the gitignored
+  `.local/sync-claude-work.cjs` on login and whenever the installed Claude plugin changes; it derives a
+  hardcoded-path variant of `claude-work` straight into `~/Library/Application Support/.../plugins/`.
+  It predates the repo generator and is now redundant (the fork bundles `claude-work`, and the app no
+  longer auto-updates). Both variants read the work account, but only the repo version is tested. To
+  retire it: `launchctl bootout gui/$(id -u)/com.hamza.openusage-claude-work-sync` and delete the plist.
 - **A globally exported `CLAUDE_CONFIG_DIR` used to poison the personal card** (both cards showed
   the work account). The generated work plugin ignores that env var, and the personal plugin only
   inherits it if OpenUsage is launched from a shell that exports it. Launch from Spotlight/Dock.

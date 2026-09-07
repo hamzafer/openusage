@@ -153,7 +153,14 @@
 
   function expandHomePath(ctx, path) {
     if (path.indexOf("~/") !== 0) return path
-    const home = readEnvText(ctx, "HOME")
+    let home = readEnvText(ctx, "HOME")
+    if (!home) {
+      // The host only exposes whitelisted env vars; derive the home dir from the
+      // app data dir (~/Library/Application Support/...) when HOME is unavailable.
+      const dataDir = ctx.app && typeof ctx.app.appDataDir === "string" ? ctx.app.appDataDir : ""
+      const libraryIndex = dataDir.indexOf("/Library/")
+      if (libraryIndex > 0) home = dataDir.slice(0, libraryIndex)
+    }
     if (!home) return path
     return home.replace(/\/+$/, "") + path.slice(1)
   }
@@ -241,13 +248,12 @@
     return digest.slice(0, 8)
   }
 
+  // claude-work: only the hashed service belongs to this account. Never fall back to the
+  // unhashed default item, which is the personal login.
   function getClaudeKeychainServiceCandidates(ctx) {
     const base = buildClaudeBaseKeychainService(ctx)
-    const candidates = []
     const hash = computeKeychainHashSuffix(ctx)
-    if (hash) candidates.push(base + "-" + hash)  // hashed (CLAUDE_CONFIG_DIR set)
-    candidates.push(base)                          // legacy / default
-    return candidates
+    return hash ? [base + "-" + hash] : []
   }
 
   function readKeychainCredentialText(ctx, service) {
