@@ -14,6 +14,7 @@ const {
   loadGlobalShortcutMock,
   loadMenubarIconStyleMock,
   loadMenubarMetricMock,
+  loadMenubarPinnedPluginsMock,
   loadPluginSettingsMock,
   loadResetTimerDisplayModeMock,
   loadStartOnLoginMock,
@@ -36,6 +37,7 @@ const {
   loadGlobalShortcutMock: vi.fn(),
   loadMenubarIconStyleMock: vi.fn(),
   loadMenubarMetricMock: vi.fn(),
+  loadMenubarPinnedPluginsMock: vi.fn(),
   loadPluginSettingsMock: vi.fn(),
   loadResetTimerDisplayModeMock: vi.fn(),
   loadStartOnLoginMock: vi.fn(),
@@ -65,6 +67,7 @@ vi.mock("@/lib/settings", () => ({
   DEFAULT_GLOBAL_SHORTCUT: null,
   DEFAULT_MENUBAR_ICON_STYLE: "provider",
   DEFAULT_MENUBAR_METRIC: "default",
+  DEFAULT_MENUBAR_PINNED_PLUGINS: [],
   DEFAULT_RESET_TIMER_DISPLAY_MODE: "relative",
   DEFAULT_START_ON_LOGIN: false,
   DEFAULT_THEME_MODE: "system",
@@ -75,6 +78,7 @@ vi.mock("@/lib/settings", () => ({
   loadGlobalShortcut: loadGlobalShortcutMock,
   loadMenubarIconStyle: loadMenubarIconStyleMock,
   loadMenubarMetric: loadMenubarMetricMock,
+  loadMenubarPinnedPlugins: loadMenubarPinnedPluginsMock,
   loadPluginSettings: loadPluginSettingsMock,
   loadResetTimerDisplayMode: loadResetTimerDisplayModeMock,
   loadStartOnLogin: loadStartOnLoginMock,
@@ -101,6 +105,7 @@ function createArgs() {
     setStartOnLogin: vi.fn(),
     setMenubarIconStyle: vi.fn(),
     setMenubarMetric: vi.fn(),
+    setMenubarPinnedPlugins: vi.fn(),
     setLoadingForPlugins: vi.fn(),
     setErrorForPlugins: vi.fn(),
     startBatch: vi.fn().mockResolvedValue(undefined),
@@ -121,6 +126,7 @@ describe("useSettingsBootstrap", () => {
     loadGlobalShortcutMock.mockReset()
     loadMenubarIconStyleMock.mockReset()
     loadMenubarMetricMock.mockReset()
+    loadMenubarPinnedPluginsMock.mockReset()
     loadPluginSettingsMock.mockReset()
     loadResetTimerDisplayModeMock.mockReset()
     loadStartOnLoginMock.mockReset()
@@ -154,6 +160,7 @@ describe("useSettingsBootstrap", () => {
     loadGlobalShortcutMock.mockResolvedValue("CommandOrControl+Shift+O")
     loadMenubarIconStyleMock.mockResolvedValue("provider")
     loadMenubarMetricMock.mockResolvedValue("default")
+    loadMenubarPinnedPluginsMock.mockResolvedValue([])
     loadStartOnLoginMock.mockResolvedValue(true)
     migrateLegacyTraySettingsMock.mockResolvedValue(undefined)
     migrateWindsurfToDevinMock.mockImplementation((settings) => settings)

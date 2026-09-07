@@ -13,7 +13,7 @@ function rgbaToImageDataBytes(rgba: Uint8ClampedArray): Uint8Array {
   return new Uint8Array(rgba.buffer)
 }
 
-function escapeXmlText(text: string): string {
+export function escapeXmlText(text: string): string {
   return text
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
@@ -96,7 +96,7 @@ function normalizePercentText(percentText: string | undefined): string | undefin
   return trimmed.length > 0 ? trimmed : undefined
 }
 
-function estimateTextWidthPx(text: string, fontSize: number): number {
+export function estimateTextWidthPx(text: string, fontSize: number): number {
   // Empirical estimate for SF Pro bold numeric glyphs in tray-sized icons.
   return Math.ceil(text.length * fontSize * 0.62 + fontSize * 0.2)
 }
@@ -341,7 +341,7 @@ export function makeTrayBarsSvg(args: {
   return parts.join("")
 }
 
-async function rasterizeSvgToRgba(svg: string, widthPx: number, heightPx: number): Promise<Uint8Array> {
+export async function rasterizeSvgToRgba(svg: string, widthPx: number, heightPx: number): Promise<Uint8Array> {
   const blob = new Blob([svg], { type: "image/svg+xml" })
   const url = URL.createObjectURL(blob)
   try {

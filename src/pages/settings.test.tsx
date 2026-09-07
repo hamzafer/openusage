@@ -61,11 +61,14 @@ const defaultProps = {
   onMenubarIconStyleChange: vi.fn(),
   menubarMetric: "default" as const,
   onMenubarMetricChange: vi.fn(),
+  menubarPinnedPlugins: [] as string[],
+  onMenubarPinnedPluginToggle: vi.fn(),
   traySettingsPreview: {
     bars: [{ id: "a", fraction: 0.7 }],
     providerBars: [{ id: "a", fraction: 0.7 }],
     providerIconUrl: "icon-a",
     providerPercentText: "70%",
+    providers: [{ id: "a", iconUrl: "icon-a", fraction: 0.7, percentText: "70%" }],
   },
   globalShortcut: null,
   onGlobalShortcutChange: vi.fn(),
@@ -290,5 +293,72 @@ describe("SettingsPage", () => {
     )
     await userEvent.click(screen.getByText("Start on login"))
     expect(onStartOnLoginChange).toHaveBeenCalledWith(true)
+  })
+
+  it("shows pinned provider chips for enabled plugins and toggles them", async () => {
+    const onMenubarPinnedPluginToggle = vi.fn()
+    render(
+      <SettingsPage
+        {...defaultProps}
+        plugins={[
+          { id: "a", name: "Alpha", enabled: true },
+          { id: "b", name: "Beta", enabled: true },
+          { id: "c", name: "Gamma", enabled: false },
+        ]}
+        menubarPinnedPlugins={["a"]}
+        onMenubarPinnedPluginToggle={onMenubarPinnedPluginToggle}
+      />
+    )
+    const alpha = screen.getByRole("checkbox", { name: "Pin Alpha" })
+    const beta = screen.getByRole("checkbox", { name: "Pin Beta" })
+    expect(screen.queryByRole("checkbox", { name: "Pin Gamma" })).toBeNull()
+    expect(alpha).toHaveAttribute("aria-checked", "true")
+    expect(beta).toHaveAttribute("aria-checked", "false")
+    await userEvent.click(beta)
+    expect(onMenubarPinnedPluginToggle).toHaveBeenCalledWith("b")
+  })
+
+  it("hides pinned provider chips for the bars style and for a single enabled plugin", () => {
+    const { rerender } = render(
+      <SettingsPage
+        {...defaultProps}
+        plugins={[
+          { id: "a", name: "Alpha", enabled: true },
+          { id: "b", name: "Beta", enabled: true },
+        ]}
+        menubarIconStyle="bars"
+      />
+    )
+    expect(screen.queryByRole("group", { name: "Pinned providers" })).toBeNull()
+    rerender(<SettingsPage {...defaultProps} menubarIconStyle="provider" />)
+    expect(screen.queryByRole("group", { name: "Pinned providers" })).toBeNull()
+  })
+
+  it("previews every pinned provider in the plugin style button", () => {
+    render(
+      <SettingsPage
+        {...defaultProps}
+        traySettingsPreview={{
+          ...defaultProps.traySettingsPreview,
+          providers: [
+            { id: "a", iconUrl: "icon-a", fraction: 0.7, percentText: "70%" },
+            { id: "b", iconUrl: "icon-b", fraction: 0.2, percentText: "20%" },
+          ],
+        }}
+      />
+    )
+    const pluginButton = screen.getByRole("radio", { name: "Plugin" })
+    expect(pluginButton).toHaveTextContent("70%")
+    expect(pluginButton).toHaveTextContent("20%")
+  })
+
+  it("falls back to the single provider preview when no providers are listed", () => {
+    render(
+      <SettingsPage
+        {...defaultProps}
+        traySettingsPreview={{ ...defaultProps.traySettingsPreview, providers: [], providerPercentText: "--%" }}
+      />
+    )
+    expect(screen.getByRole("radio", { name: "Plugin" })).toHaveTextContent("--%")
   })
 })

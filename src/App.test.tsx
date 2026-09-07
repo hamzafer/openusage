@@ -23,6 +23,8 @@ const state = vi.hoisted(() => ({
   saveMenubarIconStyleMock: vi.fn(),
   loadMenubarMetricMock: vi.fn(),
   saveMenubarMetricMock: vi.fn(),
+  loadMenubarPinnedPluginsMock: vi.fn(),
+  saveMenubarPinnedPluginsMock: vi.fn(),
   migrateLegacyTraySettingsMock: vi.fn(),
   loadGlobalShortcutMock: vi.fn(),
   saveGlobalShortcutMock: vi.fn(),
@@ -233,6 +235,8 @@ vi.mock("@/lib/settings", async () => {
     saveMenubarIconStyle: state.saveMenubarIconStyleMock,
     loadMenubarMetric: state.loadMenubarMetricMock,
     saveMenubarMetric: state.saveMenubarMetricMock,
+    loadMenubarPinnedPlugins: state.loadMenubarPinnedPluginsMock,
+    saveMenubarPinnedPlugins: state.saveMenubarPinnedPluginsMock,
     migrateLegacyTraySettings: state.migrateLegacyTraySettingsMock,
     loadGlobalShortcut: state.loadGlobalShortcutMock,
     saveGlobalShortcut: state.saveGlobalShortcutMock,
@@ -273,6 +277,8 @@ describe("App", () => {
     state.saveMenubarIconStyleMock.mockReset()
     state.loadMenubarMetricMock.mockReset()
     state.saveMenubarMetricMock.mockReset()
+    state.loadMenubarPinnedPluginsMock.mockReset()
+    state.saveMenubarPinnedPluginsMock.mockReset()
     state.migrateLegacyTraySettingsMock.mockReset()
     state.loadGlobalShortcutMock.mockReset()
     state.saveGlobalShortcutMock.mockReset()
@@ -313,6 +319,8 @@ describe("App", () => {
     state.saveMenubarIconStyleMock.mockResolvedValue(undefined)
     state.loadMenubarMetricMock.mockResolvedValue("default")
     state.saveMenubarMetricMock.mockResolvedValue(undefined)
+    state.loadMenubarPinnedPluginsMock.mockResolvedValue([])
+    state.saveMenubarPinnedPluginsMock.mockResolvedValue(undefined)
     state.migrateLegacyTraySettingsMock.mockResolvedValue(undefined)
     state.loadGlobalShortcutMock.mockResolvedValue(null)
     state.saveGlobalShortcutMock.mockResolvedValue(undefined)

@@ -35,6 +35,7 @@ const RESET_TIMER_DISPLAY_MODE_KEY = "resetTimerDisplayMode";
 const TIME_FORMAT_MODE_KEY = "timeFormatMode";
 const MENUBAR_ICON_STYLE_KEY = "menubarIconStyle";
 const MENUBAR_METRIC_KEY = "menubarMetric";
+const MENUBAR_PINNED_PLUGINS_KEY = "menubarPinnedPlugins";
 const LEGACY_TRAY_ICON_STYLE_KEY = "trayIconStyle";
 const LEGACY_TRAY_SHOW_PERCENTAGE_KEY = "trayShowPercentage";
 const GLOBAL_SHORTCUT_KEY = "globalShortcut";
@@ -51,6 +52,7 @@ export const DEFAULT_RESET_TIMER_DISPLAY_MODE: ResetTimerDisplayMode = "relative
 export const DEFAULT_TIME_FORMAT_MODE: TimeFormatMode = "auto";
 export const DEFAULT_MENUBAR_ICON_STYLE: MenubarIconStyle = "provider";
 export const DEFAULT_MENUBAR_METRIC: MenubarMetric = "default";
+export const DEFAULT_MENUBAR_PINNED_PLUGINS: string[] = [];
 export const DEFAULT_GLOBAL_SHORTCUT: GlobalShortcut = null;
 export const DEFAULT_START_ON_LOGIN = false;
 
@@ -312,6 +314,28 @@ export async function loadMenubarMetric(): Promise<MenubarMetric> {
 export async function saveMenubarMetric(metric: MenubarMetric): Promise<void> {
   await store.set(MENUBAR_METRIC_KEY, metric);
   await store.save();
+}
+
+export async function loadMenubarPinnedPlugins(): Promise<string[]> {
+  const stored = await store.get<unknown>(MENUBAR_PINNED_PLUGINS_KEY);
+  if (Array.isArray(stored)) {
+    return stored.filter((id): id is string => typeof id === "string");
+  }
+  return DEFAULT_MENUBAR_PINNED_PLUGINS;
+}
+
+export async function saveMenubarPinnedPlugins(pluginIds: string[]): Promise<void> {
+  await store.set(MENUBAR_PINNED_PLUGINS_KEY, pluginIds);
+  await store.save();
+}
+
+/** Pinned plugins that are currently enabled, in the user's plugin order. */
+export function getMenubarPinnedPluginIds(
+  pinnedPluginIds: string[],
+  settings: PluginSettings
+): string[] {
+  const pinned = new Set(pinnedPluginIds);
+  return getEnabledPluginIds(settings).filter((id) => pinned.has(id));
 }
 
 type LegacyStoreWithDelete = {

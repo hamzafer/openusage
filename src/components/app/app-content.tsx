@@ -36,6 +36,7 @@ export type AppContentActionProps = {
   onTimeFormatModeChange: (mode: TimeFormatMode) => void
   onMenubarIconStyleChange: (value: MenubarIconStyle) => void
   onMenubarMetricChange: (value: MenubarMetric) => void
+  onMenubarPinnedPluginToggle: (pluginId: string) => void
   traySettingsPreview: TraySettingsPreview
   onGlobalShortcutChange: (value: GlobalShortcut) => void
   onStartOnLoginChange: (value: boolean) => void
@@ -58,6 +59,7 @@ export function AppContent({
   onTimeFormatModeChange,
   onMenubarIconStyleChange,
   onMenubarMetricChange,
+  onMenubarPinnedPluginToggle,
   traySettingsPreview,
   onGlobalShortcutChange,
   onStartOnLoginChange,
@@ -74,6 +76,7 @@ export function AppContent({
     timeFormatMode,
     menubarIconStyle,
     menubarMetric,
+    menubarPinnedPlugins,
     autoUpdateInterval,
     globalShortcut,
     themeMode,
@@ -85,6 +88,7 @@ export function AppContent({
       timeFormatMode: state.timeFormatMode,
       menubarIconStyle: state.menubarIconStyle,
       menubarMetric: state.menubarMetric,
+      menubarPinnedPlugins: state.menubarPinnedPlugins,
       autoUpdateInterval: state.autoUpdateInterval,
       globalShortcut: state.globalShortcut,
       themeMode: state.themeMode,
@@ -125,6 +129,8 @@ export function AppContent({
         onMenubarIconStyleChange={onMenubarIconStyleChange}
         menubarMetric={menubarMetric}
         onMenubarMetricChange={onMenubarMetricChange}
+        menubarPinnedPlugins={menubarPinnedPlugins}
+        onMenubarPinnedPluginToggle={onMenubarPinnedPluginToggle}
         traySettingsPreview={traySettingsPreview}
         globalShortcut={globalShortcut}
         onGlobalShortcutChange={onGlobalShortcutChange}

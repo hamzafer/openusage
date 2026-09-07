@@ -51,6 +51,9 @@ const TRAY_PREVIEW_SIZE_PX = getTrayIconSizePx(1);
 
 const PREVIEW_BAR_TRACK_PX = 20;
 
+// Keep the style picker readable when many providers are pinned.
+const MAX_PREVIEW_PROVIDERS = 3;
+
 function getPreviewBarLayout(fraction: number): { fillPercent: number; remainderPercent: number } {
   const { fillW, remainderDrawW } = getBarFillLayout(PREVIEW_BAR_TRACK_PX, fraction);
   return {
@@ -109,16 +112,30 @@ function MenubarIconStylePreview({
   const textClass = isActive ? "text-primary-foreground" : "text-foreground";
 
   if (style === "provider") {
+    const providers =
+      traySettingsPreview.providers.length > 0
+        ? traySettingsPreview.providers.slice(0, MAX_PREVIEW_PROVIDERS)
+        : [
+            {
+              id: "preview",
+              iconUrl: traySettingsPreview.providerIconUrl,
+              percentText: traySettingsPreview.providerPercentText,
+            },
+          ];
     return (
-      <div className="inline-flex items-center gap-0.5">
-        <ProviderIconMask
-          iconUrl={traySettingsPreview.providerIconUrl}
-          isActive={isActive}
-          sizePx={TRAY_PREVIEW_SIZE_PX}
-        />
-        <span className={cn("text-[12px] font-semibold tabular-nums leading-none", textClass)}>
-          {traySettingsPreview.providerPercentText}
-        </span>
+      <div className="inline-flex items-center gap-1.5">
+        {providers.map((provider) => (
+          <span key={provider.id} className="inline-flex items-center gap-0.5">
+            <ProviderIconMask
+              iconUrl={provider.iconUrl}
+              isActive={isActive}
+              sizePx={TRAY_PREVIEW_SIZE_PX}
+            />
+            <span className={cn("text-[12px] font-semibold tabular-nums leading-none", textClass)}>
+              {provider.percentText}
+            </span>
+          </span>
+        ))}
       </div>
     );
   }
@@ -279,6 +296,8 @@ interface SettingsPageProps {
   onMenubarIconStyleChange: (value: MenubarIconStyle) => void;
   menubarMetric: MenubarMetric;
   onMenubarMetricChange: (value: MenubarMetric) => void;
+  menubarPinnedPlugins: string[];
+  onMenubarPinnedPluginToggle: (pluginId: string) => void;
   traySettingsPreview: TraySettingsPreview;
   globalShortcut: GlobalShortcut;
   onGlobalShortcutChange: (value: GlobalShortcut) => void;
@@ -304,6 +323,8 @@ export function SettingsPage({
   onMenubarIconStyleChange,
   menubarMetric,
   onMenubarMetricChange,
+  menubarPinnedPlugins,
+  onMenubarPinnedPluginToggle,
   traySettingsPreview,
   globalShortcut,
   onGlobalShortcutChange,
@@ -316,6 +337,8 @@ export function SettingsPage({
       coordinateGetter: sortableKeyboardCoordinates,
     })
   );
+
+  const enabledPlugins = plugins.filter((plugin) => plugin.enabled);
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
@@ -513,6 +536,36 @@ export function SettingsPage({
             })}
           </div>
         </div>
+        {menubarIconStyle !== "bars" && enabledPlugins.length > 1 && (
+          <>
+            <p className="text-sm text-muted-foreground mt-3 mb-2">Pinned Providers</p>
+            <div className="bg-muted/50 rounded-lg p-1">
+              <div className="flex flex-wrap gap-1" role="group" aria-label="Pinned providers">
+                {enabledPlugins.map((plugin) => {
+                  const isPinned = menubarPinnedPlugins.includes(plugin.id);
+                  return (
+                    <Button
+                      key={plugin.id}
+                      type="button"
+                      role="checkbox"
+                      aria-checked={isPinned}
+                      aria-label={`Pin ${plugin.name}`}
+                      variant={isPinned ? "default" : "outline"}
+                      size="sm"
+                      className="flex-1"
+                      onClick={() => onMenubarPinnedPluginToggle(plugin.id)}
+                    >
+                      {plugin.name}
+                    </Button>
+                  );
+                })}
+              </div>
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              Pinned providers stay in the menu bar side by side. With none pinned, it follows the provider you have open.
+            </p>
+          </>
+        )}
       </section>
       <section>
         <h3 className="text-lg font-semibold mb-0">App Theme</h3>

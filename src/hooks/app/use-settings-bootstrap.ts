@@ -13,6 +13,7 @@ import {
   DEFAULT_GLOBAL_SHORTCUT,
   DEFAULT_MENUBAR_ICON_STYLE,
   DEFAULT_MENUBAR_METRIC,
+  DEFAULT_MENUBAR_PINNED_PLUGINS,
   DEFAULT_RESET_TIMER_DISPLAY_MODE,
   DEFAULT_START_ON_LOGIN,
   DEFAULT_THEME_MODE,
@@ -23,6 +24,7 @@ import {
   loadGlobalShortcut,
   loadMenubarIconStyle,
   loadMenubarMetric,
+  loadMenubarPinnedPlugins,
   migrateLegacyTraySettings,
   migrateWindsurfToDevin,
   loadPluginSettings,
@@ -55,6 +57,7 @@ type UseSettingsBootstrapArgs = {
   setStartOnLogin: (value: boolean) => void
   setMenubarIconStyle: (value: MenubarIconStyle) => void
   setMenubarMetric: (value: MenubarMetric) => void
+  setMenubarPinnedPlugins: (value: string[]) => void
   setLoadingForPlugins: (ids: string[]) => void
   setErrorForPlugins: (ids: string[], error: string) => void
   startBatch: (pluginIds?: string[]) => Promise<string[] | undefined>
@@ -72,6 +75,7 @@ export function useSettingsBootstrap({
   setStartOnLogin,
   setMenubarIconStyle,
   setMenubarMetric,
+  setMenubarPinnedPlugins,
   setLoadingForPlugins,
   setErrorForPlugins,
   startBatch,
@@ -179,6 +183,13 @@ export function useSettingsBootstrap({
           console.error("Failed to load menubar metric:", error)
         }
 
+        let storedMenubarPinnedPlugins = DEFAULT_MENUBAR_PINNED_PLUGINS
+        try {
+          storedMenubarPinnedPlugins = await loadMenubarPinnedPlugins()
+        } catch (error) {
+          console.error("Failed to load menubar pinned plugins:", error)
+        }
+
         if (isMounted) {
           setPluginSettings(normalized)
           setAutoUpdateInterval(storedInterval)
@@ -190,6 +201,7 @@ export function useSettingsBootstrap({
           setStartOnLogin(storedStartOnLogin)
           setMenubarIconStyle(storedMenubarIconStyle)
           setMenubarMetric(storedMenubarMetric)
+          setMenubarPinnedPlugins(storedMenubarPinnedPlugins)
 
           const enabledIds = getEnabledPluginIds(normalized)
           setLoadingForPlugins(enabledIds)
@@ -221,6 +233,7 @@ export function useSettingsBootstrap({
     setLoadingForPlugins,
     setMenubarIconStyle,
     setMenubarMetric,
+    setMenubarPinnedPlugins,
     migrateWindsurfToDevin,
     migrateLegacyTraySettings,
     setPluginSettings,

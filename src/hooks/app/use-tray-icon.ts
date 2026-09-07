@@ -3,8 +3,9 @@ import { resolveResource } from "@tauri-apps/api/path"
 import { TrayIcon } from "@tauri-apps/api/tray"
 import type { PluginMeta } from "@/lib/plugin-types"
 import type { DisplayMode, MenubarIconStyle, MenubarMetric, PluginSettings } from "@/lib/settings"
-import { getEnabledPluginIds } from "@/lib/settings"
+import { getEnabledPluginIds, getMenubarPinnedPluginIds } from "@/lib/settings"
 import { getTrayIconSizePx, renderTrayBarsIcon } from "@/lib/tray-bars-icon"
+import { renderTrayMultiProviderIcon, type TrayProviderSegment } from "@/lib/tray-multi-provider-icon"
 import { getTrayPrimaryBars, type TrayPrimaryBar } from "@/lib/tray-primary-progress"
 import { formatTrayPercentText, formatTrayTooltip } from "@/lib/tray-tooltip"
 import type { PluginState } from "@/hooks/app/types"
@@ -18,6 +19,7 @@ type UseTrayIconArgs = {
   displayMode: DisplayMode
   menubarIconStyle: MenubarIconStyle
   menubarMetric: MenubarMetric
+  menubarPinnedPlugins: string[]
   activeView: string
 }
 
@@ -26,12 +28,15 @@ export type TraySettingsPreview = {
   providerBars: TrayPrimaryBar[]
   providerIconUrl?: string
   providerPercentText: string
+  /** Every provider shown in the menu bar (one entry unless providers are pinned). */
+  providers: TrayProviderSegment[]
 }
 
 const EMPTY_TRAY_SETTINGS_PREVIEW: TraySettingsPreview = {
   bars: [],
   providerBars: [],
   providerPercentText: "--%",
+  providers: [],
 }
 
 function isSameTraySettingsPreview(a: TraySettingsPreview, b: TraySettingsPreview): boolean {
@@ -39,6 +44,12 @@ function isSameTraySettingsPreview(a: TraySettingsPreview, b: TraySettingsPrevie
   if (a.providerPercentText !== b.providerPercentText) return false
   if (a.bars.length !== b.bars.length) return false
   if (a.providerBars.length !== b.providerBars.length) return false
+  if (a.providers.length !== b.providers.length) return false
+  for (let i = 0; i < a.providers.length; i += 1) {
+    if (a.providers[i]?.id !== b.providers[i]?.id) return false
+    if (a.providers[i]?.fraction !== b.providers[i]?.fraction) return false
+    if (a.providers[i]?.iconUrl !== b.providers[i]?.iconUrl) return false
+  }
   for (let i = 0; i < a.bars.length; i += 1) {
     if (a.bars[i]?.id !== b.bars[i]?.id) return false
     if (a.bars[i]?.fraction !== b.bars[i]?.fraction) return false
@@ -57,6 +68,7 @@ export function useTrayIcon({
   displayMode,
   menubarIconStyle,
   menubarMetric,
+  menubarPinnedPlugins,
   activeView,
 }: UseTrayIconArgs) {
   const trayRef = useRef<TrayIcon | null>(null)
@@ -75,6 +87,7 @@ export function useTrayIcon({
   const displayModeRef = useRef(displayMode)
   const menubarIconStyleRef = useRef(menubarIconStyle)
   const menubarMetricRef = useRef(menubarMetric)
+  const menubarPinnedPluginsRef = useRef(menubarPinnedPlugins)
   const activeViewRef = useRef(activeView)
   const lastTrayProviderIdRef = useRef<string | null>(null)
 
@@ -101,6 +114,10 @@ export function useTrayIcon({
   useEffect(() => {
     menubarMetricRef.current = menubarMetric
   }, [menubarMetric])
+
+  useEffect(() => {
+    menubarPinnedPluginsRef.current = menubarPinnedPlugins
+  }, [menubarPinnedPlugins])
 
   useEffect(() => {
     activeViewRef.current = activeView
@@ -210,6 +227,18 @@ export function useTrayIcon({
         trayProviderId = enabledPluginIds[0] ?? null
       }
 
+      // Pinned providers override the "follow the open provider" behavior and
+      // are rendered side by side in the menu bar.
+      const pinnedProviderIds = getMenubarPinnedPluginIds(
+        menubarPinnedPluginsRef.current,
+        currentSettings
+      )
+      if (pinnedProviderIds.length > 0) {
+        trayProviderId = pinnedProviderIds[0]!
+      }
+      const trayProviderIds =
+        pinnedProviderIds.length > 0 ? pinnedProviderIds : trayProviderId ? [trayProviderId] : []
+
       const barsForPreview = getTrayPrimaryBars({
         pluginsMeta: pluginsMetaRef.current,
         pluginSettings: currentSettings,
@@ -236,11 +265,33 @@ export function useTrayIcon({
         : undefined
       const providerPercentText = formatTrayPercentText(providerBars[0]?.fraction)
 
+      const providerSegments: TrayProviderSegment[] = trayProviderIds.map((id) => {
+        const bar =
+          id === trayProviderId
+            ? providerBars[0]
+            : getTrayPrimaryBars({
+                pluginsMeta: pluginsMetaRef.current,
+                pluginSettings: currentSettings,
+                pluginStates: pluginStatesRef.current,
+                maxBars: 1,
+                displayMode: displayModeRef.current,
+                pluginId: id,
+                preferWeekly,
+              })[0]
+        return {
+          id,
+          iconUrl: pluginsMetaRef.current.find((plugin) => plugin.id === id)?.iconUrl,
+          fraction: bar?.fraction,
+          percentText: formatTrayPercentText(bar?.fraction),
+        }
+      })
+
       const nextPreview: TraySettingsPreview = {
         bars: barsForPreview,
         providerBars,
         providerIconUrl,
         providerPercentText,
+        providers: providerSegments,
       }
       setTraySettingsPreview((prev) =>
         isSameTraySettingsPreview(prev, nextPreview) ? prev : nextPreview
@@ -283,6 +334,27 @@ export function useTrayIcon({
         return
       }
       lastTrayProviderIdRef.current = trayProviderId
+
+      if (providerSegments.length > 1) {
+        renderTrayMultiProviderIcon({
+          segments: providerSegments,
+          sizePx,
+          style,
+        })
+          .then(async (img) => {
+            await tray.setIcon(img)
+            await tray.setIconAsTemplate(true)
+            await setTrayTitle("")
+            await updateTooltip()
+          })
+          .catch((e) => {
+            console.error("Failed to update tray icon:", e)
+          })
+          .finally(() => {
+            finalizeUpdate()
+          })
+        return
+      }
 
       if (style === "donut") {
         renderTrayBarsIcon({
@@ -368,7 +440,7 @@ export function useTrayIcon({
   useEffect(() => {
     if (!trayReady) return
     scheduleTrayIconUpdate("settings", 0)
-  }, [activeView, menubarIconStyle, menubarMetric, scheduleTrayIconUpdate, trayReady])
+  }, [activeView, menubarIconStyle, menubarMetric, menubarPinnedPlugins, scheduleTrayIconUpdate, trayReady])
 
   useEffect(() => {
     return () => {

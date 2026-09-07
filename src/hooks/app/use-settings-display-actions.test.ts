@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest"
 const {
   saveDisplayModeMock,
   saveMenubarMetricMock,
+  saveMenubarPinnedPluginsMock,
   saveResetTimerDisplayModeMock,
   saveThemeModeMock,
   saveTimeFormatModeMock,
@@ -11,6 +12,7 @@ const {
   saveThemeModeMock: vi.fn(),
   saveDisplayModeMock: vi.fn(),
   saveMenubarMetricMock: vi.fn(),
+  saveMenubarPinnedPluginsMock: vi.fn(),
   saveResetTimerDisplayModeMock: vi.fn(),
   saveTimeFormatModeMock: vi.fn(),
 }))
@@ -19,6 +21,7 @@ vi.mock("@/lib/settings", () => ({
   saveThemeMode: saveThemeModeMock,
   saveDisplayMode: saveDisplayModeMock,
   saveMenubarMetric: saveMenubarMetricMock,
+  saveMenubarPinnedPlugins: saveMenubarPinnedPluginsMock,
   saveResetTimerDisplayMode: saveResetTimerDisplayModeMock,
   saveTimeFormatMode: saveTimeFormatModeMock,
 }))
@@ -30,11 +33,13 @@ describe("useSettingsDisplayActions", () => {
     saveThemeModeMock.mockReset()
     saveDisplayModeMock.mockReset()
     saveMenubarMetricMock.mockReset()
+    saveMenubarPinnedPluginsMock.mockReset()
     saveResetTimerDisplayModeMock.mockReset()
     saveTimeFormatModeMock.mockReset()
     saveThemeModeMock.mockResolvedValue(undefined)
     saveDisplayModeMock.mockResolvedValue(undefined)
     saveMenubarMetricMock.mockResolvedValue(undefined)
+    saveMenubarPinnedPluginsMock.mockResolvedValue(undefined)
     saveResetTimerDisplayModeMock.mockResolvedValue(undefined)
     saveTimeFormatModeMock.mockResolvedValue(undefined)
   })
@@ -55,6 +60,8 @@ describe("useSettingsDisplayActions", () => {
         setResetTimerDisplayMode,
         setTimeFormatMode,
         setMenubarIconStyle: vi.fn(),
+        menubarPinnedPlugins: [],
+        setMenubarPinnedPlugins: vi.fn(),
         setMenubarMetric,
         scheduleTrayIconUpdate,
       })
@@ -94,6 +101,8 @@ describe("useSettingsDisplayActions", () => {
           setResetTimerDisplayMode,
           setTimeFormatMode: vi.fn(),
           setMenubarIconStyle: vi.fn(),
+          menubarPinnedPlugins: [],
+          setMenubarPinnedPlugins: vi.fn(),
           setMenubarMetric: vi.fn(),
           scheduleTrayIconUpdate: vi.fn(),
         }),
@@ -132,6 +141,8 @@ describe("useSettingsDisplayActions", () => {
         setResetTimerDisplayMode: vi.fn(),
         setTimeFormatMode: vi.fn(),
         setMenubarIconStyle: vi.fn(),
+        menubarPinnedPlugins: [],
+        setMenubarPinnedPlugins: vi.fn(),
         setMenubarMetric: vi.fn(),
         scheduleTrayIconUpdate: vi.fn(),
       })
@@ -152,5 +163,71 @@ describe("useSettingsDisplayActions", () => {
     })
 
     errorSpy.mockRestore()
+  })
+
+  it("toggles a pinned provider on and off", () => {
+    const setMenubarPinnedPlugins = vi.fn()
+    const scheduleTrayIconUpdate = vi.fn()
+
+    const { result, rerender } = renderHook(
+      ({ pinned }: { pinned: string[] }) =>
+        useSettingsDisplayActions({
+          setThemeMode: vi.fn(),
+          setDisplayMode: vi.fn(),
+          resetTimerDisplayMode: "relative",
+          setResetTimerDisplayMode: vi.fn(),
+          setTimeFormatMode: vi.fn(),
+          setMenubarIconStyle: vi.fn(),
+          setMenubarMetric: vi.fn(),
+          menubarPinnedPlugins: pinned,
+          setMenubarPinnedPlugins,
+          scheduleTrayIconUpdate,
+        }),
+      { initialProps: { pinned: ["claude"] } }
+    )
+
+    act(() => {
+      result.current.handleMenubarPinnedPluginToggle("codex")
+    })
+    expect(setMenubarPinnedPlugins).toHaveBeenCalledWith(["claude", "codex"])
+    expect(saveMenubarPinnedPluginsMock).toHaveBeenCalledWith(["claude", "codex"])
+    expect(scheduleTrayIconUpdate).toHaveBeenCalledWith("settings", 0)
+
+    rerender({ pinned: ["claude", "codex"] })
+    act(() => {
+      result.current.handleMenubarPinnedPluginToggle("claude")
+    })
+    expect(setMenubarPinnedPlugins).toHaveBeenLastCalledWith(["codex"])
+    expect(saveMenubarPinnedPluginsMock).toHaveBeenLastCalledWith(["codex"])
+  })
+
+  it("logs when saving pinned providers fails", async () => {
+    const error = new Error("save pinned failed")
+    saveMenubarPinnedPluginsMock.mockRejectedValueOnce(error)
+    const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {})
+
+    const { result } = renderHook(() =>
+      useSettingsDisplayActions({
+        setThemeMode: vi.fn(),
+        setDisplayMode: vi.fn(),
+        resetTimerDisplayMode: "relative",
+        setResetTimerDisplayMode: vi.fn(),
+        setTimeFormatMode: vi.fn(),
+        setMenubarIconStyle: vi.fn(),
+        setMenubarMetric: vi.fn(),
+        menubarPinnedPlugins: [],
+        setMenubarPinnedPlugins: vi.fn(),
+        scheduleTrayIconUpdate: vi.fn(),
+      })
+    )
+
+    act(() => {
+      result.current.handleMenubarPinnedPluginToggle("claude")
+    })
+
+    await waitFor(() => {
+      expect(consoleErrorSpy).toHaveBeenCalledWith("Failed to save menubar pinned plugins:", error)
+    })
+    consoleErrorSpy.mockRestore()
   })
 })

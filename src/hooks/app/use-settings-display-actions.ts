@@ -3,6 +3,7 @@ import {
   saveDisplayMode,
   saveMenubarIconStyle,
   saveMenubarMetric,
+  saveMenubarPinnedPlugins,
   saveResetTimerDisplayMode,
   saveThemeMode,
   saveTimeFormatMode,
@@ -24,6 +25,8 @@ type UseSettingsDisplayActionsArgs = {
   setTimeFormatMode: (value: TimeFormatMode) => void
   setMenubarIconStyle: (value: MenubarIconStyle) => void
   setMenubarMetric: (value: MenubarMetric) => void
+  menubarPinnedPlugins: string[]
+  setMenubarPinnedPlugins: (value: string[]) => void
   scheduleTrayIconUpdate: ScheduleTrayIconUpdate
 }
 
@@ -35,6 +38,8 @@ export function useSettingsDisplayActions({
   setTimeFormatMode,
   setMenubarIconStyle,
   setMenubarMetric,
+  menubarPinnedPlugins,
+  setMenubarPinnedPlugins,
   scheduleTrayIconUpdate,
 }: UseSettingsDisplayActionsArgs) {
   const handleThemeModeChange = useCallback((mode: ThemeMode) => {
@@ -87,6 +92,17 @@ export function useSettingsDisplayActions({
     })
   }, [scheduleTrayIconUpdate, setMenubarMetric])
 
+  const handleMenubarPinnedPluginToggle = useCallback((pluginId: string) => {
+    const next = menubarPinnedPlugins.includes(pluginId)
+      ? menubarPinnedPlugins.filter((id) => id !== pluginId)
+      : [...menubarPinnedPlugins, pluginId]
+    setMenubarPinnedPlugins(next)
+    scheduleTrayIconUpdate("settings", 0)
+    void saveMenubarPinnedPlugins(next).catch((error) => {
+      console.error("Failed to save menubar pinned plugins:", error)
+    })
+  }, [menubarPinnedPlugins, scheduleTrayIconUpdate, setMenubarPinnedPlugins])
+
   return {
     handleThemeModeChange,
     handleDisplayModeChange,
@@ -95,5 +111,6 @@ export function useSettingsDisplayActions({
     handleTimeFormatModeChange,
     handleMenubarIconStyleChange,
     handleMenubarMetricChange,
+    handleMenubarPinnedPluginToggle,
   }
 }

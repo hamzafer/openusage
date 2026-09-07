@@ -17,6 +17,8 @@ import {
   loadGlobalShortcut,
   loadMenubarIconStyle,
   loadMenubarMetric,
+  loadMenubarPinnedPlugins,
+  getMenubarPinnedPluginIds,
   loadPluginSettings,
   loadResetTimerDisplayMode,
   loadRetirementNoticeDismissedAt,
@@ -34,6 +36,7 @@ import {
   saveGlobalShortcut,
   saveMenubarIconStyle,
   saveMenubarMetric,
+  saveMenubarPinnedPlugins,
   savePluginSettings,
   saveResetTimerDisplayMode,
   saveStartOnLogin,
@@ -475,5 +478,27 @@ describe("settings", () => {
   it("ignores a negative retirement notice dismissal value", async () => {
     storeState.set("retirementNoticeDismissedAt", -5)
     await expect(loadRetirementNoticeDismissedAt()).resolves.toBeNull()
+  })
+
+  it("loads menubar pinned plugins, dropping non-string entries", async () => {
+    expect(await loadMenubarPinnedPlugins()).toEqual([])
+    storeState.set("menubarPinnedPlugins", ["claude", 5, "codex", null])
+    expect(await loadMenubarPinnedPlugins()).toEqual(["claude", "codex"])
+    storeState.set("menubarPinnedPlugins", "claude")
+    expect(await loadMenubarPinnedPlugins()).toEqual([])
+  })
+
+  it("saves menubar pinned plugins", async () => {
+    await saveMenubarPinnedPlugins(["cursor", "claude"])
+    expect(storeState.get("menubarPinnedPlugins")).toEqual(["cursor", "claude"])
+    expect(storeSaveMock).toHaveBeenCalled()
+  })
+
+  it("getMenubarPinnedPluginIds keeps only enabled pins in plugin order", () => {
+    const ids = getMenubarPinnedPluginIds(["codex", "claude", "missing", "cursor"], {
+      order: ["claude", "cursor", "codex"],
+      disabled: ["cursor"],
+    })
+    expect(ids).toEqual(["claude", "codex"])
   })
 })
