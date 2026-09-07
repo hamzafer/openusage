@@ -9,6 +9,7 @@
     "build:release": "./scripts/build-release.sh",
     "ccusage:bump": "bun ./scripts/bump-ccusage-version.mjs",
     "bundle:plugins": "bun copy-bundled.cjs",
+    "sync:claude-work": "node ./scripts/sync-claude-work-plugin.mjs",
     "preview": "vite preview",
     "test": "vitest",
     "test:watch": "vitest --watch",

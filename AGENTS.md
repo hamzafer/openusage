@@ -4,7 +4,11 @@ Version: 0.31 (2026-06-10)
 
 > OpenUsage is a public-facing Tauri desktop app for tracking AI provider usage across plugins.
 
-## Rollout: Tauri to Swift (read first)
+## This Fork (read first)
+
+This is hamzafer/openusage, a fork that keeps developing the **Tauri edition**. Upstream `main` is the Swift rewrite: never merge it, never use GitHub's "Sync fork". Read `docs/fork-notes.md` for findings, gotchas and ideas. Commit and push all finished work to `origin` (the fork). `plugins/claude-work/` is generated: change `plugins/claude/` then run `bun run sync:claude-work`.
+
+## Upstream Rollout: Tauri to Swift (historical)
 
 OpenUsage is being rewritten as a native Swift app. During the transition, two editions ship from this one repo and stay fully independent:
 - Identity: Tauri is `com.sunstory.openusage`; Swift is `com.robinebers.openusage` (macOS treats them as different apps).
@@ -109,3 +113,6 @@ Use below list to store and recall user notes when asked to do so.
 - Use this list when asked to remember things. Keep each list item concise.
 - Tauri IPC: JS must use camelCase (`{ batchId, pluginIds }`), Tauri auto-converts to Rust's snake_case. Never send snake_case from JS—params silently won't match.
 - tauri-action `latest.json`: Parallel matrix builds are safe—action fetches existing `latest.json`, merges platform entries, re-uploads. No `max-parallel: 1` needed.
+- Local builds: `bun tauri build --bundles app --config '{"bundle":{"createUpdaterArtifacts":false}}'` (no signing key in this fork). Bump version in package.json, tauri.conf.json, Cargo.toml and Cargo.lock together.
+- Bundled plugins overwrite `~/Library/Application Support/com.sunstory.openusage/plugins/` on every launch; edit plugins in the repo, not there.
+- Claude Code keychain service is `Claude Code-credentials-<sha256(CLAUDE_CONFIG_DIR)[:8]>`, hashed over the literal (expanded) path.

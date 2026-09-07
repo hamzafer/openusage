@@ -1,5 +1,7 @@
 # Track all your AI coding subscriptions in one place
 
+> **This is hamzafer's fork of the Tauri edition of OpenUsage.** Upstream moved to a native Swift rewrite; this fork keeps the Tauri app alive, adds pinned providers in the menu bar and a second Claude account card. Start with [docs/fork-notes.md](docs/fork-notes.md).
+
 See your usage at a glance from your menu bar. No digging through dashboards.
 
 ![OpenUsage Screenshot](screenshot.png)
