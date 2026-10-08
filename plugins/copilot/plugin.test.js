@@ -238,6 +238,23 @@ describe("copilot plugin", () => {
     expect(result.plan).toBe("Business Plus");
   });
 
+  it("labels the education plan as Student instead of Individual", async () => {
+    const ctx = makePluginTestContext();
+    setKeychainToken(ctx, "tok");
+    ctx.host.http.request.mockReturnValue({
+      status: 200,
+      bodyText: JSON.stringify(
+        makeUsageResponse({
+          copilot_plan: "individual",
+          access_type_sku: "free_educational_quota",
+        }),
+      ),
+    });
+    const plugin = await loadPlugin();
+    const result = plugin.probe(ctx);
+    expect(result.plan).toBe("Student");
+  });
+
   it("propagates resetsAt from quota_reset_date", async () => {
     const ctx = makePluginTestContext();
     setKeychainToken(ctx, "tok");

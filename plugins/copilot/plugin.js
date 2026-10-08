@@ -210,7 +210,10 @@
 
     const lines = [];
     let plan = null;
-    if (data.copilot_plan) {
+    // Student accounts report copilot_plan "individual"; the SKU tells them apart.
+    if (data.access_type_sku === "free_educational_quota") {
+      plan = "Student";
+    } else if (data.copilot_plan) {
       plan = ctx.fmt.planLabel(data.copilot_plan);
     }
 

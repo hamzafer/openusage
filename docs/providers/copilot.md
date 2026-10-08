@@ -81,6 +81,9 @@ X-Github-Api-Version: 2025-04-01
 }
 ```
 
+Student accounts also report `copilot_plan: "individual"`, with `access_type_sku: "free_educational_quota"`
+and paid-tier `quota_snapshots`. OpenUsage labels these as **Student**.
+
 ## Displayed Lines
 
 | Line         | Tier | Description                              |
