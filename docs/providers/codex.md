@@ -57,6 +57,18 @@ Returns rate limit windows, optional credits, and available on-demand rate limit
   },
   "rate_limit_reset_credits": {            // on-demand resets (optional)
     "available_count": 1
+  },
+  "spend_control": {                       // workspace credit limit (Team/Business, optional)
+    "reached": false,
+    "individual_limit": {
+      "source": "workspace_spend_controls",
+      "unit": "credit",
+      "limit": "500",
+      "used": "0.0",
+      "remaining": "500.0",
+      "reset_after_seconds": 2018057,
+      "reset_at": 1793491200
+    }
   }
 }
 ```
@@ -66,6 +78,11 @@ Both rate_limit windows are enforced simultaneously — hitting either limit thr
 OpenUsage floors the remaining credit balance to a whole number and displays its fixed USD
 equivalent at `$0.04` per credit. For example, `820.6969075` renders as
 `$32.80 · 820 credits`. The credit balance is unbounded; the API does not provide a maximum.
+A `null` balance means no purchased credits, so OpenUsage hides the line instead of showing zero.
+
+On workspace plans, the monthly credit limit set by the workspace owner lives in
+`spend_control.individual_limit`, not in `credits`. OpenUsage shows it as a **Workspace Credits**
+bar (used of limit, with its reset time).
 
 When available, OpenUsage displays the on-demand reset count as the first detail text metric,
 for example `1 available`.

@@ -338,6 +338,66 @@ describe("codex plugin", () => {
     })
   })
 
+  it("omits credits when the balance is null instead of showing zero", async () => {
+    const ctx = makeCtx()
+    ctx.host.fs.writeText("~/.codex/auth.json", JSON.stringify({
+      tokens: { access_token: "token" },
+      last_refresh: new Date().toISOString(),
+    }))
+    ctx.host.http.request.mockReturnValue({
+      status: 200,
+      headers: {},
+      bodyText: JSON.stringify({
+        plan_type: "team",
+        credits: { has_credits: true, unlimited: false, balance: null },
+      }),
+    })
+
+    const plugin = await loadPlugin()
+    const result = plugin.probe(ctx)
+    expect(result.lines.find((line) => line.label === "Credits")).toBeUndefined()
+  })
+
+  it("shows workspace credits from spend_control as a progress line", async () => {
+    const ctx = makeCtx()
+    ctx.host.fs.writeText("~/.codex/auth.json", JSON.stringify({
+      tokens: { access_token: "token" },
+      last_refresh: new Date().toISOString(),
+    }))
+    ctx.host.http.request.mockReturnValue({
+      status: 200,
+      headers: {},
+      bodyText: JSON.stringify({
+        plan_type: "team",
+        credits: { has_credits: true, unlimited: false, balance: null },
+        spend_control: {
+          reached: false,
+          individual_limit: {
+            source: "workspace_spend_controls",
+            unit: "credit",
+            limit: "500",
+            used: "120.5",
+            remaining: "379.5",
+            reset_after_seconds: 2018057,
+            reset_at: 1793491200,
+          },
+        },
+      }),
+    })
+
+    const plugin = await loadPlugin()
+    const result = plugin.probe(ctx)
+    const workspace = result.lines.find((line) => line.label === "Workspace Credits")
+    expect(workspace).toMatchObject({
+      type: "progress",
+      used: 120.5,
+      limit: 500,
+      format: { kind: "count", suffix: "credits" },
+      resetsAt: ctx.util.toIso(1793491200),
+    })
+    expect(result.lines.find((line) => line.label === "Credits")).toBeUndefined()
+  })
+
   it("refreshes keychain auth and writes back to keychain", async () => {
     const ctx = makeCtx()
     ctx.host.keychain.readGenericPassword.mockReturnValue(JSON.stringify({

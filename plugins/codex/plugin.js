@@ -336,12 +336,27 @@
   function readCreditsRemaining(resp, data) {
     const credits = data && data.credits && typeof data.credits === "object" ? data.credits : null
     if (credits) {
-      const bodyBalance = readNumber(credits.balance)
+      // Number(null) is 0, so a null balance would otherwise render as "0 credits".
+      const bodyBalance = credits.balance == null ? null : readNumber(credits.balance)
       if (bodyBalance !== null) return bodyBalance
       if (credits.has_credits === false) return 0
     }
 
-    return readNumber(resp.headers["x-codex-credits-balance"])
+    const headerBalance = resp.headers["x-codex-credits-balance"]
+    return headerBalance == null ? null : readNumber(headerBalance)
+  }
+
+  // Workspace-assigned monthly credits (Team/Business), separate from purchased credits.
+  function readWorkspaceCredits(data) {
+    const spend = data && data.spend_control && typeof data.spend_control === "object" ? data.spend_control : null
+    const limitInfo = spend && spend.individual_limit && typeof spend.individual_limit === "object"
+      ? spend.individual_limit
+      : null
+    if (!limitInfo || limitInfo.limit == null || limitInfo.used == null) return null
+    const limit = readNumber(limitInfo.limit)
+    const used = readNumber(limitInfo.used)
+    if (limit === null || used === null || limit <= 0) return null
+    return { limit, used: Math.max(0, used), window: limitInfo }
   }
 
   function formatCodexPlan(ctx, planType) {
@@ -847,6 +862,17 @@
         lines.push(ctx.line.text({
           label: "Credits",
           value: "$" + usdValue + " · " + remaining + " credits",
+        }))
+      }
+
+      const workspaceCredits = readWorkspaceCredits(data)
+      if (workspaceCredits) {
+        lines.push(ctx.line.progress({
+          label: "Workspace Credits",
+          used: workspaceCredits.used,
+          limit: workspaceCredits.limit,
+          format: { kind: "count", suffix: "credits" },
+          resetsAt: getResetsAtIso(ctx, nowSec, workspaceCredits.window),
         }))
       }
 
